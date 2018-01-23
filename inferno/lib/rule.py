@@ -12,7 +12,6 @@ from inferno.lib.disco_ext import sorted_iterator, json_output_stream
 from inferno.lib.map import keyset_map
 from inferno.lib.reader import csv_reader
 from inferno.lib.reader import json_reader
-from inferno.lib.reader import dynamic_reader
 from inferno.lib.reduce import keyset_reduce
 from inferno.lib.result import keyset_result
 
@@ -21,7 +20,6 @@ gzip_csv_stream = gzip_stream + (csv_reader,)
 gzip_json_stream = gzip_stream + (json_reader,)
 chunk_json_stream = chain_stream + (json_reader,)
 chunk_csv_stream = chain_stream + (csv_reader,)
-chunk_dynamic_stream = chain_stream + (dynamic_reader,)
 json_reduce_output_stream = (reduce_output_stream, json_output_stream)
 
 
@@ -38,7 +36,8 @@ class Keyset(object):
                  column_mappings=None,
                  table=None,
                  parts_preprocess=None,
-                 parts_postprocess=None):
+                 parts_postprocess=None,
+                 **kwargs):
 
         self.key_parts = ['_keyset'] + list(key_parts or [])
         self.value_parts = value_parts or []
@@ -46,15 +45,18 @@ class Keyset(object):
         self.table = table
         self.parts_preprocess = parts_preprocess or []
         self.parts_postprocess = parts_postprocess or []
+        self.kwargs = kwargs
 
     def as_dict(self):
-        return {
+        rval = {
             'key_parts': self.key_parts,
             'value_parts': self.value_parts,
             'column_mappings': self.column_mappings,
             'table': self.table,
             'parts_preprocess': self.parts_preprocess,
             'parts_postprocess': self.parts_postprocess}
+        rval.update(self.kwargs)
+        return rval
 
 
 class InfernoRule(object):
@@ -260,8 +262,7 @@ class InfernoRule(object):
             map_function=fstr(self.map_function),
             reduce_function=fstr(self.reduce_function),
             keysets=self.params.keysets,
-            parts_preprocess=fname(self.params.parts_preprocess),
-        )
+            parts_preprocess=fname(self.params.parts_preprocess))
 
 
 def extract_subrules(rule):
